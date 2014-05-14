@@ -15,7 +15,7 @@ private:
     idx_t size;
     T* data;
 
-    inline idx_t index(smallidx_t stridesidx __attribute__((unused)), smallidx_t i) const {
+    inline idx_t index(smallidx_t, smallidx_t i) const {
         return i;
     }
 
@@ -24,7 +24,7 @@ private:
         return i*strides[stridesidx]+index(stridesidx+1,rest...);
     }
 
-    inline idx_t fill_strides(smallidx_t stridesidx __attribute__((unused))) const {
+    inline idx_t fill_strides(smallidx_t) const {
         return 1;
     }
 
