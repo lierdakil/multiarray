@@ -25,16 +25,24 @@ private:
         assert(stridesidx<ndim);
         return i*strides[stridesidx]+index(stridesidx+1,rest...);
     }
+
+    inline idx_t fill_strides(smallidx_t stridesidx) const {
+        assert(stridesidx==ndim-1);
+        strides[stridesidx]=1;
+        return 1;
+    }
+
+    template<typename ... Types>
+    inline idx_t fill_strides(smallidx_t stridesidx, smallidx_t i, Types... rest) const {
+        assert(stridesidx<ndim);
+        return strides[stridesidx]=fill_strides(stridesidx+1,rest...)*i;
+    }
 public:
     template<typename ... Types>
-    MultiArray(smallidx_t nfirst,Types... counts) {
+    MultiArray(smallidx_t nfirst, Types... counts) {
         ndim=sizeof...(counts)+1;
-        smallidx_t dims[]={nfirst,counts...};
         strides=new smallidx_t[ndim];
-        strides[ndim-1]=1;
-        for(int i=ndim-2; i>=0; --i) {
-            strides[i]=strides[i+1]*dims[i+1];
-        }
+        fill_strides(0,counts...);
         size=nfirst*strides[0];
         data=new T[size];
     }
