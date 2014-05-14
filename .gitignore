@@ -19,3 +19,7 @@
 *.exe
 *.out
 *.app
+
+#project files
+*.pro
+*.pro.user
