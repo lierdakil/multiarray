@@ -11,7 +11,7 @@ private:
     typedef unsigned int smallidx_t;
 
     smallidx_t ndim;
-    smallidx_t* strides;
+    idx_t* strides;
     idx_t size;
     T* data;
 
@@ -41,7 +41,7 @@ public:
     template<typename ... Types>
     MultiArray(smallidx_t nfirst, Types... counts) {
         ndim=sizeof...(counts)+1;
-        strides=new smallidx_t[ndim];
+        strides=new idx_t[ndim];
         fill_strides(0,counts...);
         size=nfirst*strides[0];
         data=new T[size];
