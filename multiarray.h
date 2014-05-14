@@ -2,7 +2,6 @@
 #define MULTIARRAY_H
 
 #include <cassert>
-#include <iostream>
 
 template<typename T>
 class MultiArray
