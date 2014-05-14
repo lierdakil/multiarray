@@ -35,21 +35,21 @@ private:
 
 public:
     template<typename ... Types>
-    MultiArray(smallidx_t nfirst, Types... counts)
+    MultiArray(smallidx_t nfirst, Types... counts) :
+        ndim(sizeof...(counts)+1),
+        strides(new idx_t[ndim-1])
     {
-        ndim=sizeof...(counts)+1;
-        strides=new idx_t[ndim-1];
         fill_strides(0,counts...);
         size=nfirst*strides[0];
         data=new T[size];
     }
 
     MultiArray(smallidx_t nfirst) :
-        strides(nullptr)
+        ndim(1),
+        strides(nullptr),
+        size(nfirst),
+        data(new T[size])
     {
-        ndim=1;
-        size=nfirst;
-        data=new T[size];
     }
 
     ~MultiArray() {
