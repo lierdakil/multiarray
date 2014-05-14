@@ -3,29 +3,17 @@
 
 using namespace std;
 
-template<typename ... Types>
-void testint(Types... args) {
-    Test<int,Types...> test(args...);
-    test.run();
-}
-
-template<typename ... Types>
-void testfloat(Types... args) {
-    Test<float,Types...> test(args...);
-    test.run();
-}
-
-template<typename ... Types>
-void testdouble(Types... args) {
-    Test<double,Types...> test(args...);
+template<typename T,typename ... Types>
+void testinner(T,Types... args) {
+    Test<T,Types...> test(args...);
     test.run();
 }
 
 template<unsigned int ... args>
 void test() {
-    testint(args...);
-    testdouble(args...);
-    testfloat(args...);
+    testinner(int(),args...);
+    testinner(float(),args...);
+    testinner(double(),args...);
     std::cerr<<__PRETTY_FUNCTION__<<" test: Success!"<<std::endl;
 }
 
