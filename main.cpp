@@ -37,7 +37,7 @@ int main()
     test<5,9,7,4>();
 
     //example
-    MultiArray<double> arr(4,5);//create an array of double 4x5 size
+    MultiArray<double> arr(4u,5u);//create an array of double 4x5 size
 
     for(int i=0; i<4; ++i)
         for(int j=0; j<5; ++j)
