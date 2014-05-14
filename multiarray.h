@@ -24,8 +24,8 @@ private:
         return i*strides[stridesidx]+index(stridesidx+1,rest...);
     }
 
-    inline idx_t fill_strides(smallidx_t) const {
-        return 1;
+    inline idx_t fill_strides(smallidx_t stridesidx,smallidx_t i) const {
+        return strides[stridesidx]=i;
     }
 
     template<typename ... Types>
@@ -35,16 +35,20 @@ private:
 
 public:
     template<typename ... Types>
-    MultiArray(smallidx_t nfirst, Types... counts) :
-        strides(nullptr)
+    MultiArray(smallidx_t nfirst, Types... counts)
     {
         ndim=sizeof...(counts)+1;
-        if(ndim>1) {
-            strides=new idx_t[ndim-1];
-            fill_strides(0,counts...);
-            size=nfirst*strides[0];
-        } else
-            size=nfirst;
+        strides=new idx_t[ndim-1];
+        fill_strides(0,counts...);
+        size=nfirst*strides[0];
+        data=new T[size];
+    }
+
+    MultiArray(smallidx_t nfirst) :
+        strides(nullptr)
+    {
+        ndim=1;
+        size=nfirst;
         data=new T[size];
     }
 
