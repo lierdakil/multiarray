@@ -99,7 +99,7 @@ public:
         return (*this)[index(0,indexes...)];
     }
 
-    class iterator : public std::iterator<std::input_iterator_tag, T>
+    class iterator : public std::iterator<std::forward_iterator_tag, T>
     {
     protected:
         friend class MultiArray;
@@ -128,7 +128,7 @@ public:
         }
     };
 
-    class const_iterator : public std::iterator<std::input_iterator_tag, T>
+    class const_iterator : public std::iterator<std::forward_iterator_tag, T>
     {
     protected:
         friend class MultiArray;
