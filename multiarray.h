@@ -176,7 +176,7 @@ public:
         T& operator*() {arr->check_valid(); return (*arr)[idx];}
         T* operator->() {return &(**this);}
 
-        const MultiArray* parent() const { return arr; }
+        MultiArray* parent() { return arr; }
         const multiIdx_t index() const {
             arr->check_valid();
             std::array<smallidx_t,ndim> i;
