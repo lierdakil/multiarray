@@ -4,6 +4,8 @@
 #include "multiarray.h"
 #include <vector>
 #include <random>
+#include <cassert>
+#include <iostream>
 
 template<typename T,typename ... Types>
 class Test
@@ -94,6 +96,18 @@ public:
             }
             assert(vi==vi_max);
         }
+        //out_of_range check
+        {
+            bool pass=false;
+            try {
+                auto it=ma.end();
+                *it=0;
+            } catch (std::out_of_range &e) {
+                pass=true;
+                assert(std::string(e.what())=="MultiArray index out of range");
+            }
+            assert(pass);
+        }
         //move check
         {
             auto mva=std::move(ma);
@@ -103,6 +117,18 @@ public:
                 assert(*i==values[vi++]);
             }
             assert(vi==vi_max);
+        }
+        //logic_error check
+        {
+            bool pass=false;
+            try {
+                auto it=ma.begin();
+                *it=0;
+            } catch (std::logic_error &e) {
+                pass=true;
+                assert(std::string(e.what())=="Using invalid MultiArray");
+            }
+            assert(pass);
         }
     }
 };
