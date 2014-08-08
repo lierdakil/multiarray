@@ -69,6 +69,19 @@ public:
             }
             assert(vi==vi_max);
         }
+        //array index check
+        {
+            vi=0;
+            for(auto i=ma.const_begin(); i!=ma.const_end(); ++i) {
+                assert(ma(i.index())==values[vi++]);
+            }
+            assert(vi==vi_max);
+            vi=0;
+            for(auto i=ma.begin(); i!=ma.end(); ++i) {
+                assert(ma(i.index())==values[vi++]);
+            }
+            assert(vi==vi_max);
+        }
         //copy check
         {
             const auto ca=ma; //shallow copy

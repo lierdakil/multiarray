@@ -10,8 +10,8 @@ template<typename T, unsigned int ndim>
 class MultiArray
 {
 private:
-    typedef unsigned long long int idx_t;
-    typedef unsigned int smallidx_t;
+    using idx_t = unsigned long long int;
+    using smallidx_t = unsigned int;
 
     std::shared_ptr<idx_t> strides;
     idx_t size;
@@ -60,6 +60,25 @@ private:
             throw std::out_of_range("MultiArray index out of range");
     }
 
+    template<smallidx_t ...S> struct seq {};
+    template<smallidx_t N, smallidx_t ...S> struct gens : gens<N-1, N-1, S...> {};
+    template<smallidx_t ...S> struct gens<0, S...>{ typedef seq<S...> type; };
+
+    using idxseq=typename gens<ndim>::type;
+
+    using multiIdx_t = std::array<smallidx_t,ndim>;
+
+    //array-based helpers
+    template<typename A, smallidx_t ... I>
+    inline const T& get_impl(const A& arr, seq<I...>) const {
+        return get(arr[I]...);
+    }
+
+    template<typename A, smallidx_t ... I>
+    inline T& set_impl(const A& arr, seq<I...>) {
+        return set(arr[I]...);
+    }
+
 public:
     template<typename ... Types>
     MultiArray(smallidx_t nfirst, Types... counts) :
@@ -95,6 +114,7 @@ public:
         other.data.reset();
     }
 
+    //arg-based
     template<typename ... Types>
     inline const T& get(Types... indexes) const {
         static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::get(...)");
@@ -119,6 +139,24 @@ public:
         return set(indexes...);
     }
 
+    //array-based
+
+    inline const T& get(const multiIdx_t& arr) const {
+        return get_impl(arr,idxseq());
+    }
+
+    inline T& set(const multiIdx_t& arr) {
+        return set_impl(arr,idxseq());
+    }
+
+    inline const T& operator()(const multiIdx_t &arr) const {
+        return get(arr);
+    }
+
+    inline T& operator()(const multiIdx_t &arr) {
+        return set(arr);
+    }
+
     inline bool valid() const {
         return (strides||ndim==1) && data && size;
     }
@@ -139,13 +177,13 @@ public:
         T* operator->() {return &(**this);}
 
         const MultiArray* parent() const { return arr; }
-        const std::array<smallidx_t,ndim> index() const {
+        const multiIdx_t index() const {
             arr->check_valid();
             std::array<smallidx_t,ndim> i;
             auto t=idx;
             for(smallidx_t j=0; j<ndim-1; ++j) {
-                i[j]=t/arr->strides[j];
-                t=t%arr->strides[j];
+                i[j]=t/arr->strides.get()[j];
+                t=t%arr->strides.get()[j];
             }
             i[ndim-1]=t;
             return i;
@@ -168,7 +206,7 @@ public:
         const T* operator->() const {return &(**this);}
 
         const MultiArray* parent() const { return arr; }
-        const std::array<smallidx_t,ndim> index() const {
+        const multiIdx_t index() const {
             arr->check_valid();
             std::array<smallidx_t,ndim> i;
             auto t=idx;

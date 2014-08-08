@@ -40,7 +40,7 @@ int main()
     const auto arr3=std::move(arr);
     for(auto i=arr3.const_begin();i!=arr3.const_end();++i) { //arr is invalid here
         auto& idx(i.index());
-        std::cout<<'('<<idx.at(0)<<','<<idx.at(1)<<")="<<*i<<std::endl;
+        std::cout<<'('<<idx.at(0)<<','<<idx.at(1)<<")="<<arr3(idx)<<std::endl;
     }
 }
 
