@@ -1,10 +1,10 @@
 #ifndef MULTIARRAY_H
 #define MULTIARRAY_H
 
-#include <cassert>
 #include <iterator>
 #include <memory>
 #include <array>
+#include <stdexcept>
 
 template<typename T, unsigned int ndim>
 class MultiArray
@@ -36,18 +36,28 @@ private:
     }
 
     inline const T& operator[](idx_t idx) const {
-        assert(idx<size);
+        check_size(idx);
         return data.get()[idx];
     }
 
     inline T& operator[](idx_t idx) {
-        assert(idx<size);
+        check_size(idx);
         if(!data.unique()) {
             std::shared_ptr<T> other(new T[size],std::default_delete<T[]>());
             std::copy(data.get(),data.get()+size,other.get());
             data.swap(other);
         }
         return data.get()[idx];
+    }
+
+    inline void check_valid() const {
+        if(!valid())
+            throw std::logic_error("Using invalid MultiArray");
+    }
+
+    inline void check_size(idx_t idx) const {
+        if(idx>=size)
+            throw std::out_of_range("MultiArray index out of range");
     }
 
 public:
@@ -73,7 +83,6 @@ public:
         size(other.size),
         data(other.data)
     {
-        assert(valid());
     }
 
     MultiArray(MultiArray &&other) :
@@ -89,14 +98,14 @@ public:
     template<typename ... Types>
     inline const T& get(Types... indexes) const {
         static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::get(...)");
-        assert(valid());
+        check_valid();
         return (*this)[index(0,indexes...)];
     }
 
     template<typename ... Types>
     inline T& set(Types... indexes) {
         static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::set(...)");
-        assert(valid());
+        check_valid();
         return (*this)[index(0,indexes...)];
     }
 
@@ -126,12 +135,12 @@ public:
         iterator operator++(int) {iterator tmp(*this); operator++(); return tmp;}
         bool operator==(const iterator& rhs) const {return !(*this!=rhs);}
         bool operator!=(const iterator& rhs) const {return arr!=rhs.arr || idx!=rhs.idx;}
-        T& operator*() {return (*arr)[idx];}
+        T& operator*() {arr->check_valid(); return (*arr)[idx];}
         T* operator->() {return &(**this);}
 
         const MultiArray* parent() const { return arr; }
         const std::array<smallidx_t,ndim> index() const {
-            assert(arr->valid());
+            arr->check_valid();
             std::array<smallidx_t,ndim> i;
             auto t=idx;
             for(smallidx_t j=0; j<ndim-1; ++j) {
@@ -155,12 +164,12 @@ public:
         const_iterator operator++(int) {const_iterator tmp(*this); operator++(); return tmp;}
         bool operator==(const const_iterator& rhs) const {return !(*this!=rhs);}
         bool operator!=(const const_iterator& rhs) const {return arr!=rhs.arr || idx!=rhs.idx;}
-        const T& operator*() const {return (*arr)[idx];}
+        const T& operator*() const {arr->check_valid(); return (*arr)[idx];}
         const T* operator->() const {return &(**this);}
 
         const MultiArray* parent() const { return arr; }
         const std::array<smallidx_t,ndim> index() const {
-            assert(arr->valid());
+            arr->check_valid();
             std::array<smallidx_t,ndim> i;
             auto t=idx;
             for(smallidx_t j=0; j<ndim-1; ++j) {
