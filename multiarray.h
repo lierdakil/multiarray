@@ -35,7 +35,12 @@ private:
         return strides[stridesidx]=fill_strides(stridesidx+1,rest...)*i;
     }
 
-    inline T& operator[](idx_t idx) const {
+    inline const T& operator[](idx_t idx) const {
+        assert(idx<size);
+        return data[idx];
+    }
+
+    inline T& operator[](idx_t idx) {
         assert(idx<size);
         return data[idx];
     }
@@ -81,32 +86,68 @@ public:
     }
 
     template<typename ... Types>
-    inline T& operator()(Types... indexes) const {
+    inline const T& operator()(Types... indexes) const {
+        static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::operator() const");
+        assert(valid());
+        return (*this)[index(0,indexes...)];
+    }
+
+    template<typename ... Types>
+    inline T& operator()(Types... indexes) {
         static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::operator()");
         assert(valid());
-        idx_t idx=index(0,indexes...);
-        return (*this)[idx];
+        return (*this)[index(0,indexes...)];
     }
 
     class iterator : public std::iterator<std::input_iterator_tag, T>
     {
+    protected:
         friend class MultiArray;
-        const MultiArray* arr;
+        MultiArray* const arr;
         idx_t idx;
-        iterator(const MultiArray* arr, idx_t idx) : arr(arr), idx(idx) {}
+        iterator(MultiArray* arr, idx_t idx) : arr(arr), idx(idx) {}
     public:
         iterator& operator++() {++idx; return *this;}
         iterator operator++(int) {iterator tmp(*this); operator++(); return tmp;}
         bool operator==(const iterator& rhs) const {return !(*this!=rhs);}
         bool operator!=(const iterator& rhs) const {return arr!=rhs.arr || idx!=rhs.idx;}
-        T& operator*() const {assert(idx<arr->size); return (*arr)[idx];}
-        T* operator->() const {return &(**this);}
+        T& operator*() {return (*arr)[idx];}
+        T* operator->() {return &(**this);}
 
         const MultiArray* parent() const { return arr; }
         const std::array<smallidx_t,ndim> index() const {
+            assert(arr->valid());
             std::array<smallidx_t,ndim> i;
             auto t=idx;
+            for(smallidx_t j=0; j<ndim-1; ++j) {
+                i[j]=t/arr->strides[j];
+                t=t%arr->strides[j];
+            }
+            i[ndim-1]=t;
+            return i;
+        }
+    };
+
+    class const_iterator : public std::iterator<std::input_iterator_tag, T>
+    {
+    protected:
+        friend class MultiArray;
+        const MultiArray* arr;
+        idx_t idx;
+        const_iterator(const MultiArray* arr, idx_t idx) : arr(arr), idx(idx) {}
+    public:
+        const_iterator& operator++() {++idx; return *this;}
+        const_iterator operator++(int) {const_iterator tmp(*this); operator++(); return tmp;}
+        bool operator==(const const_iterator& rhs) const {return !(*this!=rhs);}
+        bool operator!=(const const_iterator& rhs) const {return arr!=rhs.arr || idx!=rhs.idx;}
+        const T& operator*() const {return (*arr)[idx];}
+        const T* operator->() const {return &(**this);}
+
+        const MultiArray* parent() const { return arr; }
+        const std::array<smallidx_t,ndim> index() const {
             assert(arr->valid());
+            std::array<smallidx_t,ndim> i;
+            auto t=idx;
             for(smallidx_t j=0; j<ndim-1; ++j) {
                 i[j]=t/arr->strides[j];
                 t=t%arr->strides[j];
@@ -127,6 +168,19 @@ public:
     template<typename ... Types>
     iterator make_iterator(Types... indices) {
         return iterator(this, index(0,indices...));
+    }
+
+    const_iterator const_begin() const {
+        return const_iterator(this,0);
+    }
+
+    const_iterator const_end() const {
+        return const_iterator(this,size);
+    }
+
+    template<typename ... Types>
+    const_iterator make_const_iterator(Types... indices) const {
+        return const_iterator(this, index(0,indices...));
     }
 };
 

@@ -37,8 +37,8 @@ int main()
         for(int j=0; j<5; ++j)
             std::cout<<arr2(i,j)<<"=="<<i*5+j<<std::endl;//retrival
 
-    auto arr3=std::move(arr);
-    for(auto i=arr.begin();i!=arr.end();++i) { //arr is invalid here
+    const auto arr3=std::move(arr);
+    for(auto i=arr3.const_begin();i!=arr3.const_end();++i) { //arr is invalid here
         auto& idx(i.index());
         std::cout<<'('<<idx.at(0)<<','<<idx.at(1)<<")="<<*i<<std::endl;
     }
