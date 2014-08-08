@@ -13,9 +13,9 @@ private:
     typedef unsigned long long int idx_t;
     typedef unsigned int smallidx_t;
 
-    std::unique_ptr<idx_t[]> strides;
+    std::shared_ptr<idx_t> strides;
     idx_t size;
-    std::unique_ptr<T[]> data;
+    std::shared_ptr<T> data;
 
     inline idx_t index(smallidx_t, smallidx_t i) const {
         return i;
@@ -23,38 +23,39 @@ private:
 
     template<typename ... Types>
     inline idx_t index(smallidx_t stridesidx, smallidx_t i, Types... rest) const {
-        return i*strides[stridesidx]+index(stridesidx+1,rest...);
+        return i*strides.get()[stridesidx]+index(stridesidx+1,rest...);
     }
 
     inline idx_t fill_strides(smallidx_t stridesidx,smallidx_t i) const {
-        return strides[stridesidx]=i;
+        return strides.get()[stridesidx]=i;
     }
 
     template<typename ... Types>
     inline idx_t fill_strides(smallidx_t stridesidx, smallidx_t i, Types... rest) const {
-        return strides[stridesidx]=fill_strides(stridesidx+1,rest...)*i;
+        return strides.get()[stridesidx]=fill_strides(stridesidx+1,rest...)*i;
     }
 
     inline const T& operator[](idx_t idx) const {
         assert(idx<size);
-        return data[idx];
+        return data.get()[idx];
     }
 
     inline T& operator[](idx_t idx) {
         assert(idx<size);
-        return data[idx];
-    }
-
-    inline bool valid() const {
-        return (strides||ndim==1) && data && size;
+        if(!data.unique()) {
+            std::shared_ptr<T> other(new T[size],std::default_delete<T[]>());
+            std::copy(data.get(),data.get()+size,other.get());
+            data.swap(other);
+        }
+        return data.get()[idx];
     }
 
 public:
     template<typename ... Types>
     MultiArray(smallidx_t nfirst, Types... counts) :
-        strides(new idx_t[ndim-1]),
+        strides(new idx_t[ndim-1],std::default_delete<idx_t[]>()),
         size(nfirst*fill_strides(0,counts...)),
-        data(new T[size])
+        data(new T[size],std::default_delete<T[]>())
     {
         static_assert(ndim==sizeof...(counts)+1,"Invalid number of arguments in MultiArray constructor");
     }
@@ -62,41 +63,55 @@ public:
     MultiArray(smallidx_t nfirst) :
         strides(nullptr),
         size(nfirst),
-        data(new T[size])
+        data(new T[size],std::default_delete<T[]>())
     {
         static_assert(ndim==1,"Invalid number of arguments in MultiArray constructor");
     }
 
     MultiArray(const MultiArray &other) :
-        strides(new idx_t[ndim-1]),
+        strides(other.strides),
         size(other.size),
-        data(new T[size])
+        data(other.data)
     {
-        assert(other.valid());
-        std::copy(&other.strides[0],&other.strides[ndim-1],&strides[0]);
-        std::copy(&other.data[0],&other.data[size],&data[0]);
+        assert(valid());
     }
 
     MultiArray(MultiArray &&other) :
-        strides(other.strides.release()),
+        strides(other.strides),
         size(other.size),
-        data(other.data.release())
+        data(other.data)
     {
         other.size=0;
+        other.strides.reset();
+        other.data.reset();
+    }
+
+    template<typename ... Types>
+    inline const T& get(Types... indexes) const {
+        static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::get(...)");
+        assert(valid());
+        return (*this)[index(0,indexes...)];
+    }
+
+    template<typename ... Types>
+    inline T& set(Types... indexes) {
+        static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::set(...)");
+        assert(valid());
+        return (*this)[index(0,indexes...)];
     }
 
     template<typename ... Types>
     inline const T& operator()(Types... indexes) const {
-        static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::operator() const");
-        assert(valid());
-        return (*this)[index(0,indexes...)];
+        return get(indexes...);
     }
 
     template<typename ... Types>
     inline T& operator()(Types... indexes) {
-        static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::operator()");
-        assert(valid());
-        return (*this)[index(0,indexes...)];
+        return set(indexes...);
+    }
+
+    inline bool valid() const {
+        return (strides||ndim==1) && data && size;
     }
 
     class iterator : public std::iterator<std::forward_iterator_tag, T>
@@ -149,8 +164,8 @@ public:
             std::array<smallidx_t,ndim> i;
             auto t=idx;
             for(smallidx_t j=0; j<ndim-1; ++j) {
-                i[j]=t/arr->strides[j];
-                t=t%arr->strides[j];
+                i[j]=t/arr->strides.get()[j];
+                t=t%arr->strides.get()[j];
             }
             i[ndim-1]=t;
             return i;

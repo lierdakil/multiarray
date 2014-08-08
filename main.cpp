@@ -35,7 +35,7 @@ int main()
 
     for(int i=0; i<4; ++i)
         for(int j=0; j<5; ++j)
-            std::cout<<arr2(i,j)<<"=="<<i*5+j<<std::endl;//retrival
+            std::cout<<arr2.get(i,j)<<"=="<<i*5+j<<std::endl;//retrival
 
     const auto arr3=std::move(arr);
     for(auto i=arr3.const_begin();i!=arr3.const_end();++i) { //arr is invalid here
