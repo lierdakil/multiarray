@@ -44,10 +44,66 @@ public:
     }
 
     void run() {
-        vi=0;
-        fill(false);
-        vi=0;
-        fill(true);
+        auto vi_max=vi;
+        //assignment check
+        {
+            vi=0;
+            fill(false);
+            vi_max=vi;
+            vi=0;
+            fill(true);
+            assert(vi==vi_max);
+        }
+        //iterator check
+        {
+            vi=0;
+            for(auto i=ma.const_begin(); i!=ma.const_end(); ++i) {
+                assert(*i==values[vi++]);
+            }
+            assert(vi==vi_max);
+            vi=0;
+            for(auto i=ma.begin(); i!=ma.end(); ++i) {
+                assert(*i==values[vi++]);
+            }
+            assert(vi==vi_max);
+        }
+        //copy check
+        {
+            const auto ca=ma; //shallow copy
+            auto i=ma.const_begin(),j=ca.const_begin();
+            for(; i!=ma.const_end() && j!=ca.const_end(); ++i, ++j) {
+                assert(&*i==&*j);
+            }
+            assert(i==ma.const_end()&&j==ca.const_end());
+            auto cvalues=values;
+            vi=0;
+            fill(false);//reset ma, should cow
+            i=ma.const_begin(),j=ca.const_begin();
+            for(; i!=ma.const_end() && j!=ca.const_end(); ++i, ++j) {
+                assert(&*i!=&*j);
+            }
+            assert(i==ma.const_end()&&j==ca.const_end());
+            vi=0;
+            for(auto i=ma.const_begin(); i!=ma.const_end(); ++i) {
+                assert(*i==values[vi++]);
+            }
+            assert(vi==vi_max);
+            vi=0;
+            for(auto i=ca.const_begin(); i!=ca.const_end(); ++i) {
+                assert(*i==cvalues[vi++]);
+            }
+            assert(vi==vi_max);
+        }
+        //move check
+        {
+            auto mva=std::move(ma);
+            assert(!ma.valid());
+            vi=0;
+            for(auto i=mva.const_begin(); i!=mva.const_end(); ++i) {
+                assert(*i==values[vi++]);
+            }
+            assert(vi==vi_max);
+        }
     }
 };
 
