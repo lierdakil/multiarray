@@ -10,7 +10,7 @@ class Test
 {
 private:
     using idx_t=long long unsigned int;
-    MultiArray<T> ma;
+    MultiArray<T,sizeof...(Types)> ma;
     std::vector<unsigned int> count;
     idx_t size;
 

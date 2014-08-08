@@ -25,14 +25,22 @@ int main()
     test<5,9,7,4>();
 
     //example
-    MultiArray<double> arr(4u,5u);//create an array of double 4x5 size
+    auto arr=make_array<double>(4u,5u);//create an array of double 4x5 size
 
     for(int i=0; i<4; ++i)
         for(int j=0; j<5; ++j)
             arr(i,j)=i*5+j;//assignment
 
+    auto arr2=arr;
+
     for(int i=0; i<4; ++i)
         for(int j=0; j<5; ++j)
-            std::cout<<arr(i,j)<<"=="<<i*5+j<<std::endl;//retrival
+            std::cout<<arr2(i,j)<<"=="<<i*5+j<<std::endl;//retrival
+
+    auto arr3=std::move(arr);
+    for(auto i=arr.begin();i!=arr.end();++i) { //arr is invalid here
+        auto& idx(i.index());
+        std::cout<<'('<<idx.at(0)<<','<<idx.at(1)<<")="<<*i<<std::endl;
+    }
 }
 

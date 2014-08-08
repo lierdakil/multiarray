@@ -2,18 +2,20 @@
 #define MULTIARRAY_H
 
 #include <cassert>
+#include <iterator>
+#include <memory>
+#include <array>
 
-template<typename T>
+template<typename T, unsigned int ndim>
 class MultiArray
 {
 private:
     typedef unsigned long long int idx_t;
     typedef unsigned int smallidx_t;
 
-    smallidx_t ndim;
-    idx_t* strides;
+    std::unique_ptr<idx_t[]> strides;
     idx_t size;
-    T* data;
+    std::unique_ptr<T[]> data;
 
     inline idx_t index(smallidx_t, smallidx_t i) const {
         return i;
@@ -33,36 +35,103 @@ private:
         return strides[stridesidx]=fill_strides(stridesidx+1,rest...)*i;
     }
 
+    inline T& operator[](idx_t idx) const {
+        assert(idx<size);
+        return data[idx];
+    }
+
+    inline bool valid() const {
+        return (strides||ndim==1) && data && size;
+    }
+
 public:
     template<typename ... Types>
     MultiArray(smallidx_t nfirst, Types... counts) :
-        ndim(sizeof...(counts)+1),
-        strides(new idx_t[ndim-1])
+        strides(new idx_t[ndim-1]),
+        size(nfirst*fill_strides(0,counts...)),
+        data(new T[size])
     {
-        fill_strides(0,counts...);
-        size=nfirst*strides[0];
-        data=new T[size];
+        static_assert(ndim==sizeof...(counts)+1,"Invalid number of arguments in MultiArray constructor");
     }
 
     MultiArray(smallidx_t nfirst) :
-        ndim(1),
         strides(nullptr),
         size(nfirst),
         data(new T[size])
     {
+        static_assert(ndim==1,"Invalid number of arguments in MultiArray constructor");
     }
 
-    ~MultiArray() {
-        delete[] strides;
-        delete[] data;
+    MultiArray(const MultiArray &other) :
+        strides(new idx_t[ndim-1]),
+        size(other.size),
+        data(new T[size])
+    {
+        assert(other.valid());
+        std::copy(&other.strides[0],&other.strides[ndim-1],&strides[0]);
+        std::copy(&other.data[0],&other.data[size],&data[0]);
+    }
+
+    MultiArray(MultiArray &&other) :
+        strides(other.strides.release()),
+        size(other.size),
+        data(other.data.release())
+    {
+        other.size=0;
     }
 
     template<typename ... Types>
     inline T& operator()(Types... indexes) const {
-        assert(sizeof...(indexes)==ndim);
+        static_assert(sizeof...(indexes)==ndim,"Invalid number of arguments in MultiArray::operator()");
+        assert(valid());
         idx_t idx=index(0,indexes...);
-        assert(idx<size);
-        return data[idx];
+        return (*this)[idx];
+    }
+
+    class iterator : public std::iterator<std::input_iterator_tag, T>
+    {
+        friend class MultiArray;
+        const MultiArray* arr;
+        idx_t idx;
+        iterator(const MultiArray* arr, idx_t idx) : arr(arr), idx(idx) {}
+    public:
+        iterator& operator++() {++idx; return *this;}
+        iterator operator++(int) {iterator tmp(*this); operator++(); return tmp;}
+        bool operator==(const iterator& rhs) const {return !(*this!=rhs);}
+        bool operator!=(const iterator& rhs) const {return arr!=rhs.arr || idx!=rhs.idx;}
+        T& operator*() const {assert(idx<arr->size); return (*arr)[idx];}
+        T* operator->() const {return &(**this);}
+
+        const MultiArray* parent() const { return arr; }
+        const std::array<smallidx_t,ndim> index() const {
+            std::array<smallidx_t,ndim> i;
+            auto t=idx;
+            assert(arr->valid());
+            for(smallidx_t j=0; j<ndim-1; ++j) {
+                i[j]=t/arr->strides[j];
+                t=t%arr->strides[j];
+            }
+            i[ndim-1]=t;
+            return i;
+        }
+    };
+
+    iterator begin() {
+        return iterator(this,0);
+    }
+
+    iterator end() {
+        return iterator(this,size);
+    }
+
+    template<typename ... Types>
+    iterator make_iterator(Types... indices) {
+        return iterator(this, index(0,indices...));
     }
 };
+
+template<typename T, typename ... Types>
+auto make_array(Types... counts) -> MultiArray<T,sizeof...(Types)> {
+    return MultiArray<T,sizeof...(Types)>(counts...);
+}
 #endif // MULTIARRAY_H
