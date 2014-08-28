@@ -79,7 +79,7 @@ private:
         return set(arr[I]...);
     }
 
-    const multiIdx_t msize;
+    multiIdx_t msize;
 
 public:
     MultiArray() :
@@ -127,6 +127,27 @@ public:
         other.arr_size=0;
         other.strides.reset();
         other.data.reset();
+        other.msize={0};
+    }
+
+    MultiArray & operator=(const MultiArray &other) {
+        strides=other.strides;
+        arr_size=other.arr_size;
+        data=other.data;
+        msize=other.msize;
+        return *this;
+    }
+
+    MultiArray & operator=(MultiArray &&other) {
+        strides=other.strides;
+        arr_size=other.arr_size;
+        data=other.data;
+        msize=other.msize;
+        other.strides.reset();
+        other.data.reset();
+        other.arr_size=0;
+        other.msize={0};
+        return *this;
     }
 
     //arg-based

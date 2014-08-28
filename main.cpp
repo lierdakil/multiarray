@@ -43,7 +43,11 @@ int main()
         std::cout<<'('<<idx.at(0)<<','<<idx.at(1)<<")="<<arr3(idx)<<std::endl;
     }
 
-    auto arr4=make_array<double>(arr.size()); //create array with same dimensions
+    auto arr4=make_array<double>(arr3.size()); //create array with same dimensions
     std::cout<<arr4.size()[0]<<", "<<arr4.size()[1]<<std::endl;
+
+    arr4=std::move(arr3);
+    for(auto &i : arr4)
+        std::cout<<i<<std::endl;
 }
 
