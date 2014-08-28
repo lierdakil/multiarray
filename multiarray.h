@@ -82,6 +82,15 @@ private:
     const multiIdx_t msize;
 
 public:
+    MultiArray() :
+        strides(nullptr),
+        arr_size(0),
+        data(nullptr),
+        msize{0}
+    {
+
+    }
+
     template<typename ... Types>
     MultiArray(smallidx_t nfirst, Types... counts) :
         strides(new idx_t[ndim-1],std::default_delete<idx_t[]>()),
