@@ -6,6 +6,12 @@
 #include <array>
 #include <stdexcept>
 
+namespace sequtils {
+template<unsigned int ...S> struct seq {};
+template<unsigned int N, unsigned int ...S> struct gens : gens<N-1, N-1, S...> {};
+template<unsigned int ...S> struct gens<0, S...>{ typedef seq<S...> type; };
+}
+
 template<typename T, unsigned int ndim>
 class MultiArray
 {
@@ -60,22 +66,18 @@ private:
             throw std::out_of_range("MultiArray index out of range");
     }
 
-    template<smallidx_t ...S> struct seq {};
-    template<smallidx_t N, smallidx_t ...S> struct gens : gens<N-1, N-1, S...> {};
-    template<smallidx_t ...S> struct gens<0, S...>{ typedef seq<S...> type; };
-
-    typedef typename gens<ndim>::type idxseq;
+    typedef typename sequtils::gens<ndim>::type idxseq;
 
     typedef std::array<smallidx_t,ndim> multiIdx_t;
 
     //array-based helpers
     template<typename A, smallidx_t ... I>
-    inline const T& get_impl(const A& arr, seq<I...>) const {
+    inline const T& get_impl(const A& arr, sequtils::seq<I...>) const {
         return get(arr[I]...);
     }
 
     template<typename A, smallidx_t ... I>
-    inline T& set_impl(const A& arr, seq<I...>) {
+    inline T& set_impl(const A& arr, sequtils::seq<I...>) {
         return set(arr[I]...);
     }
 
