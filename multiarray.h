@@ -15,10 +15,12 @@ template<unsigned int ...S> struct gens<0, S...>{ typedef seq<S...> type; };
 template<typename T, unsigned int ndim>
 class MultiArray
 {
-private:
+public:
     typedef unsigned long long int idx_t;
     typedef unsigned int smallidx_t;
-
+    typedef typename sequtils::gens<ndim>::type idxseq;
+    typedef std::array<smallidx_t,ndim> multiIdx_t;
+private:
     std::shared_ptr<idx_t> strides;
     idx_t arr_size;
     std::shared_ptr<T> data;
@@ -65,10 +67,6 @@ private:
         if(idx>=arr_size)
             throw std::out_of_range("MultiArray index out of range");
     }
-
-    typedef typename sequtils::gens<ndim>::type idxseq;
-
-    typedef std::array<smallidx_t,ndim> multiIdx_t;
 
     //array-based helpers
     template<typename A, smallidx_t ... I>
@@ -258,8 +256,27 @@ public:
     }
 };
 
-template<typename T, typename ... Types>
+namespace typeutils {
+template <template <typename> class pred, typename...> struct query_all;
+template <template <typename> class pred> struct query_all<pred>
+    : std::integral_constant<bool, true> {};
+template <template <typename> class pred, typename T, typename... Args> struct query_all<pred, T, Args...>
+    : std::integral_constant<bool, pred<T>::value && query_all<pred, Args...>::value> {};
+}
+
+template<typename T, typename ... Types,
+         typename = typename std::enable_if<typeutils::query_all<std::is_integral,Types...>::value>::type>
 auto make_array(Types... counts) -> MultiArray<T,sizeof...(Types)> {
     return MultiArray<T,sizeof...(Types)>(counts...);
+}
+
+template<typename T, typename A, unsigned int ... I>
+auto make_array_helper(A arr, sequtils::seq<I...>) -> MultiArray<T,sizeof...(I)> {
+    return MultiArray<T,arr.size()>(arr[I]...);
+}
+
+template<typename T, std::size_t N>
+auto make_array(std::array<unsigned int,N> size) -> MultiArray<T,N> {
+    return make_array_helper<T>(size,typename sequtils::gens<N>::type());
 }
 #endif // MULTIARRAY_H

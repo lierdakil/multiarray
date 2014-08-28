@@ -42,5 +42,8 @@ int main()
         auto& idx(i.index());
         std::cout<<'('<<idx.at(0)<<','<<idx.at(1)<<")="<<arr3(idx)<<std::endl;
     }
+
+    auto arr4=make_array<double>(arr.size()); //create array with same dimensions
+    std::cout<<arr4.size()[0]<<", "<<arr4.size()[1]<<std::endl;
 }
 
