@@ -27,14 +27,14 @@ int main()
     //example
     auto arr=make_array<double>(4u,5u);//create an array of double 4x5 size
 
-    for(int i=0; i<4; ++i)
-        for(int j=0; j<5; ++j)
+    for(uint i=0; i<arr.size()[0]; ++i)
+        for(uint j=0; j<arr.size()[1]; ++j)
             arr(i,j)=i*5+j;//assignment
 
     auto arr2=arr;
 
-    for(int i=0; i<4; ++i)
-        for(int j=0; j<5; ++j)
+    for(uint i=0; i<arr.size()[0]; ++i)
+        for(uint j=0; j<arr.size()[1]; ++j)
             std::cout<<arr2.get(i,j)<<"=="<<i*5+j<<std::endl;//retrival
 
     const auto arr3=std::move(arr);

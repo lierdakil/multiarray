@@ -10,11 +10,11 @@ template<typename T, unsigned int ndim>
 class MultiArray
 {
 private:
-    using idx_t = unsigned long long int;
-    using smallidx_t = unsigned int;
+    typedef unsigned long long int idx_t;
+    typedef unsigned int smallidx_t;
 
     std::shared_ptr<idx_t> strides;
-    idx_t size;
+    idx_t arr_size;
     std::shared_ptr<T> data;
 
     inline idx_t index(smallidx_t, smallidx_t i) const {
@@ -43,8 +43,8 @@ private:
     inline T& operator[](idx_t idx) {
         check_size(idx);
         if(!data.unique()) {
-            std::shared_ptr<T> other(new T[size],std::default_delete<T[]>());
-            std::copy(data.get(),data.get()+size,other.get());
+            std::shared_ptr<T> other(new T[arr_size],std::default_delete<T[]>());
+            std::copy(data.get(),data.get()+arr_size,other.get());
             data.swap(other);
         }
         return data.get()[idx];
@@ -56,7 +56,7 @@ private:
     }
 
     inline void check_size(idx_t idx) const {
-        if(idx>=size)
+        if(idx>=arr_size)
             throw std::out_of_range("MultiArray index out of range");
     }
 
@@ -64,9 +64,9 @@ private:
     template<smallidx_t N, smallidx_t ...S> struct gens : gens<N-1, N-1, S...> {};
     template<smallidx_t ...S> struct gens<0, S...>{ typedef seq<S...> type; };
 
-    using idxseq=typename gens<ndim>::type;
+    typedef typename gens<ndim>::type idxseq;
 
-    using multiIdx_t = std::array<smallidx_t,ndim>;
+    typedef std::array<smallidx_t,ndim> multiIdx_t;
 
     //array-based helpers
     template<typename A, smallidx_t ... I>
@@ -79,37 +79,43 @@ private:
         return set(arr[I]...);
     }
 
+    const multiIdx_t msize;
+
 public:
     template<typename ... Types>
     MultiArray(smallidx_t nfirst, Types... counts) :
         strides(new idx_t[ndim-1],std::default_delete<idx_t[]>()),
-        size(nfirst*fill_strides(0,counts...)),
-        data(new T[size],std::default_delete<T[]>())
+        arr_size(nfirst*fill_strides(0,counts...)),
+        data(new T[arr_size],std::default_delete<T[]>()),
+        msize{nfirst,counts...}
     {
         static_assert(ndim==sizeof...(counts)+1,"Invalid number of arguments in MultiArray constructor");
     }
 
     MultiArray(smallidx_t nfirst) :
         strides(nullptr),
-        size(nfirst),
-        data(new T[size],std::default_delete<T[]>())
+        arr_size(nfirst),
+        data(new T[arr_size],std::default_delete<T[]>()),
+        msize{nfirst}
     {
         static_assert(ndim==1,"Invalid number of arguments in MultiArray constructor");
     }
 
     MultiArray(const MultiArray &other) :
         strides(other.strides),
-        size(other.size),
-        data(other.data)
+        arr_size(other.arr_size),
+        data(other.data),
+        msize(other.msize)
     {
     }
 
     MultiArray(MultiArray &&other) :
         strides(other.strides),
-        size(other.size),
-        data(other.data)
+        arr_size(other.arr_size),
+        data(other.data),
+        msize(other.msize)
     {
-        other.size=0;
+        other.arr_size=0;
         other.strides.reset();
         other.data.reset();
     }
@@ -157,8 +163,12 @@ public:
         return set(arr);
     }
 
+    inline multiIdx_t size() const {
+        return msize;
+    }
+
     inline bool valid() const {
-        return (strides||ndim==1) && data && size;
+        return (strides||ndim==1) && data && arr_size;
     }
 
     class iterator : public std::iterator<std::forward_iterator_tag, T>
@@ -224,7 +234,7 @@ public:
     }
 
     iterator end() {
-        return iterator(this,size);
+        return iterator(this,arr_size);
     }
 
     template<typename ... Types>
@@ -237,7 +247,7 @@ public:
     }
 
     const_iterator const_end() const {
-        return const_iterator(this,size);
+        return const_iterator(this,arr_size);
     }
 
     template<typename ... Types>
