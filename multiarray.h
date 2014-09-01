@@ -24,6 +24,7 @@ private:
     std::shared_ptr<idx_t> strides;
     idx_t arr_size;
     std::shared_ptr<T> data;
+    multiIdx_t msize;
 
     inline idx_t index(smallidx_t, smallidx_t i) const {
         return i;
@@ -78,8 +79,6 @@ private:
     inline T& set_impl(const A& arr, sequtils::seq<I...>) {
         return set(arr[I]...);
     }
-
-    multiIdx_t msize;
 
 public:
     MultiArray() :
