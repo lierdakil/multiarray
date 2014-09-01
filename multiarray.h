@@ -123,10 +123,7 @@ public:
         data(other.data),
         msize(other.msize)
     {
-        other.arr_size=0;
-        other.strides.reset();
-        other.data.reset();
-        other.msize={0};
+        other.clear();
     }
 
     MultiArray & operator=(const MultiArray &other) {
@@ -142,10 +139,7 @@ public:
         arr_size=other.arr_size;
         data=other.data;
         msize=other.msize;
-        other.strides.reset();
-        other.data.reset();
-        other.arr_size=0;
-        other.msize={0};
+        other.clear();
         return *this;
     }
 
@@ -192,6 +186,8 @@ public:
         return set(arr);
     }
 
+    //utility
+
     inline multiIdx_t size() const {
         return msize;
     }
@@ -199,6 +195,15 @@ public:
     inline bool valid() const {
         return (strides||ndim==1) && data && arr_size;
     }
+
+    inline void clear() {
+        strides.reset();
+        data.reset();
+        arr_size=0;
+        msize={0};
+    }
+
+    //iterators
 
     class iterator : public std::iterator<std::forward_iterator_tag, T>
     {
