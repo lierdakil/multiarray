@@ -8,12 +8,30 @@
 #include <iostream>
 
 template<typename T,typename ... Types>
+class Test;
+
+template<typename T,typename D>
+void test_slice_2(Test<T,D>&) {}
+
+template<typename T,typename ... Types>
+void test_slice_2(Test<T,Types...> &test);
+
+template<typename T,typename D>
+void test_slice_3(Test<T,D>&) {}
+
+template<typename T,typename D, typename E>
+void test_slice_3(Test<T,D,E>&) {}
+
+template<typename T,typename ... Types>
+void test_slice_3(Test<T,Types...> &test);
+
+template<typename T,typename ... Types>
 class Test
 {
 private:
     using idx_t=long long unsigned int;
     MultiArray<T,sizeof...(Types)> ma;
-    std::vector<unsigned int> count;
+    std::array<unsigned int,sizeof...(Types)> count;
     idx_t size;
 
     std::vector<T> values;
@@ -36,6 +54,22 @@ private:
         }
         vi++;
     }
+
+    template<unsigned int N, typename T1, typename...Types1> struct tuple_gen : tuple_gen<N-1,T1,T1,Types1...> {};
+    template<typename T1, typename ... Types1> struct tuple_gen<0,T1,Types1...> { typedef std::tuple<Types1...> type; };
+
+    template<unsigned int ...I>
+    typename tuple_gen<sizeof...(I),range>::type make_slice(sequtils::seq<I...>) {
+        return std::make_tuple(range(0,count[I]-1)...);
+    }
+
+    template<unsigned int ...I>
+    typename tuple_gen<sizeof...(I),range>::type make_slice2(sequtils::seq<I...>) {
+        return typename tuple_gen<sizeof...(I),range>::type();
+    }
+
+    friend void test_slice_2<>(Test&);
+    friend void test_slice_3<>(Test&);
 
 public:
     Test(Types... counts) : ma(counts...),count({counts...}) {
@@ -174,6 +208,36 @@ public:
             assert(vi==vi_max);
             ma=mva;
         }
+        //slice check
+        {
+            //basically copy, range(...)
+            {
+                auto slice_arg = make_slice(typename sequtils::gens<sizeof...(Types)>::type());
+                auto slice=ma.slice(slice_arg);
+                vi=0;
+                for(auto i=slice.const_begin(); i!=slice.const_end(); ++i) {
+                    assert(*i==values[vi++]);
+                }
+            }
+            //no last dimension, range(...), range{...}
+            {
+                auto slice_arg = make_slice(typename sequtils::gens<sizeof...(Types)-1>::type());
+                auto slice=ma.slice(std::tuple_cat(slice_arg,std::make_tuple(range{0})));
+                vi=0;
+                for(auto i=slice.const_begin(); i!=slice.const_end(); ++i) {
+                    assert(*i==values[vi]);
+                    vi+=count.back();
+                }
+            }
+            //no first/last dimension
+            {
+                test_slice_2(*this);
+            }
+            //no first/last 2 dimensions
+            {
+                test_slice_3(*this);
+            }
+        }
         //logic_error check
         {
             auto mva=std::move(ma);
@@ -192,3 +256,54 @@ public:
 };
 
 #endif // TEST_H
+
+template<typename T,typename ... Types>
+void test_slice_2(Test<T,Types...> &test) {
+    {//no last dim
+        auto slice_arg = test.make_slice2(typename sequtils::gens<sizeof...(Types)-1>::type());
+        auto slice=test.ma.slice(std::tuple_cat(slice_arg,std::make_tuple(0u)));
+        int vi=0;
+        for(auto i=slice.const_begin(); i!=slice.const_end(); ++i) {
+            assert(*i==test.values[vi]);
+            vi+=test.count.back();
+        }
+    }
+    {//no first dim
+        auto slice_arg = test.make_slice2(typename sequtils::gens<sizeof...(Types)-1>::type());
+        auto slice=test.ma.slice(std::tuple_cat(std::make_tuple(0u),slice_arg));
+        int vi=0;
+        for(auto i=slice.const_begin(); i!=slice.const_end(); ++i) {
+            assert(*i==test.values[vi++]);
+        }
+    }
+}
+
+template<typename T,typename ... Types>
+void test_slice_3(Test<T,Types...> &test) {
+    {//no last 2 dims
+        auto slice_arg = test.make_slice2(typename sequtils::gens<sizeof...(Types)-2>::type());
+        auto slice=test.ma.slice(std::tuple_cat(slice_arg,std::make_tuple(0u,1u)));
+        int vi=0;
+        for(auto i=slice.const_begin(); i!=slice.const_end(); ++i) {
+            assert(*i==test.values[vi+1]);
+            vi+=test.count.back()*test.count[sizeof...(Types)-2];
+        }
+    }
+    {//no first no last, range()
+        auto slice_arg = test.make_slice2(typename sequtils::gens<sizeof...(Types)-2>::type());
+        auto slice=test.ma.slice(std::tuple_cat(std::make_tuple(0u),slice_arg,std::make_tuple(1u)));
+        int vi=0;
+        for(auto i=slice.const_begin(); i!=slice.const_end(); ++i) {
+            assert(*i==test.values[vi+1]);
+            vi+=test.count.back();
+        }
+    }
+    {//no 2 first, range()
+        auto slice_arg = test.make_slice2(typename sequtils::gens<sizeof...(Types)-2>::type());
+        auto slice=test.ma.slice(std::tuple_cat(std::make_tuple(0u,0u),slice_arg));
+        int vi=0;
+        for(auto i=slice.const_begin(); i!=slice.const_end(); ++i) {
+            assert(*i==test.values[vi++]);
+        }
+    }
+}

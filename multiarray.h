@@ -5,12 +5,25 @@
 #include <memory>
 #include <array>
 #include <stdexcept>
+#include <vector>
 
 namespace sequtils {
 template<unsigned int ...S> struct seq {};
 template<unsigned int N, unsigned int ...S> struct gens : gens<N-1, N-1, S...> {};
 template<unsigned int ...S> struct gens<0, S...>{ typedef seq<S...> type; };
 }
+
+class range : public std::vector<unsigned int> {
+public:
+    range(unsigned int first, unsigned int last) : std::vector<unsigned int>(last-first+1) {
+        for(unsigned int i=0; i<size(); ++i)
+            at(i)=i+first;
+    }
+
+    range(std::initializer_list<unsigned int> list) : std::vector<unsigned int>(list) {}
+
+    range() : std::vector<unsigned int>() {}
+};
 
 template<typename T, unsigned int ndim>
 class MultiArray
@@ -78,6 +91,54 @@ private:
     template<typename A, smallidx_t ... I>
     inline T& set_impl(const A& arr, sequtils::seq<I...>) {
         return set(arr[I]...);
+    }
+
+    //slice helpers
+
+    template<unsigned int N, typename Ti, typename ... Types>
+    struct count_idx : count_idx<N+(std::is_integral<Ti>::value?1:0), Types...> {};
+
+    template<unsigned int N, typename Ti>
+    struct count_idx<N, Ti> { constexpr static unsigned int value=N+(std::is_integral<Ti>::value?1:0); };
+
+    template<smallidx_t slice_ndim, typename ... Types>
+    inline void slice_size(typename MultiArray<T,slice_ndim>::multiIdx_t &res, smallidx_t i, smallidx_t j, range& first, Types&...rest) {
+        if(first.size()==0)
+            first=range(0,size()[j]-1);
+        res[i]=first.size();
+        slice_size<slice_ndim>(res,i+1,j+1,rest...);
+    }
+
+    template<smallidx_t slice_ndim, typename ... Types>
+    inline void slice_size(typename MultiArray<T,slice_ndim>::multiIdx_t &res, smallidx_t i, smallidx_t j, smallidx_t, Types&...rest) {
+        slice_size<slice_ndim>(res,i,j+1,rest...);
+    }
+
+    template<smallidx_t slice_ndim, typename ... Types>
+    inline void slice_size(typename MultiArray<T,slice_ndim>::multiIdx_t &, smallidx_t, smallidx_t) {}
+
+    template<int N2,typename ... Types>
+    inline void fill(MultiArray<T,N2> &res, typename MultiArray<T,N2>::multiIdx_t& idx, unsigned int idxn, multiIdx_t& idx2, unsigned int idxn2, range& first, Types&...rest) {
+        for(idx[idxn]=0; idx[idxn]<res.size()[idxn]; ++idx[idxn]) {
+            idx2[idxn2] = first[idx[idxn]];
+            fill<N2>(res,idx,idxn+1,idx2,idxn2+1,rest...);
+        }
+    }
+
+    template<int N2,typename ... Types>
+    inline void fill(MultiArray<T,N2> &res, typename MultiArray<T,N2>::multiIdx_t& idx, unsigned int idxn, multiIdx_t& idx2, unsigned int idxn2, unsigned int first, Types&...rest) {
+        idx2[idxn2] = first;
+        fill<N2>(res,idx,idxn,idx2,idxn2+1,rest...);
+    }
+
+    template<int N2>
+    inline void fill(MultiArray<T,N2> &res, typename MultiArray<T,N2>::multiIdx_t& idx, unsigned int, multiIdx_t& idx2, unsigned int) {
+        res(idx)=(*this)(idx2);
+    }
+
+    template<typename R, typename A, smallidx_t ... I>
+    inline R slice_impl(const A& arr, sequtils::seq<I...>) {
+        return slice(std::get<I>(arr)...);
     }
 
 public:
@@ -203,6 +264,16 @@ public:
         msize={0};
     }
 
+    template<typename ... Types>
+    MultiArray<T,ndim-count_idx<0,Types...>::value> slice(Types... args);
+
+    template<typename ... Types>
+    MultiArray<T,ndim-count_idx<0,Types...>::value> slice(std::tuple<Types...> arg) {
+        return slice_impl<
+                MultiArray<T,ndim-count_idx<0,Types...>::value>
+                >(arg,typename sequtils::gens<sizeof...(Types)>::type());
+    }
+
     //iterators
 
     class iterator : public std::iterator<std::forward_iterator_tag, T>
@@ -313,4 +384,19 @@ template<typename T, std::size_t N>
 auto make_array(std::array<unsigned int,N> size) -> MultiArray<T,N> {
     return make_array_helper<T>(size,typename sequtils::gens<N>::type());
 }
+
+template<typename T, unsigned int ndim>
+template<typename ... Types>
+MultiArray<T,ndim-MultiArray<T,ndim>::count_idx<0,Types...>::value> MultiArray<T,ndim>::slice(Types... args) {
+    constexpr auto N=count_idx<0,Types...>::value;
+    static_assert(N<ndim,"Slice of dimension<=0. Probably that's not what you want!");
+    std::array<unsigned int,ndim-N> size;
+    slice_size<ndim-N>(size,0,0,args...);
+    MultiArray<T,ndim-N> result = make_array<T>(size);
+    auto idx1=typename MultiArray<T,ndim-N>::multiIdx_t{0};
+    auto idx2=multiIdx_t{0};
+    fill<ndim-N>(result,idx1,0,idx2,0,args...);
+    return result;
+}
+
 #endif // MULTIARRAY_H

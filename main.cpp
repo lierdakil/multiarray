@@ -48,6 +48,32 @@ int main()
 
     arr4=std::move(arr3);
     for(auto &i : arr4)
-        std::cout<<i<<std::endl;
+        std::cout<<i<<" ";
+    std::cout<<std::endl;
+
+    std::cout<<"Slice"<<std::endl;
+    auto arr5=make_array<double>(2u,3u,4u);
+    {
+        int t=0;
+        for(auto &i : arr5)
+            i=t++;
+    }
+    //range() means use whole dimension
+    //range{i,j,...} means only use i,j,...
+    //range(i,j) means use indexes from i to j (inclusive)
+    auto arr6=arr5.slice(range(),range{0,2},range(1,2));
+    //auto arr6=arr5.slice(std::make_tuple(range(),range{0,2},range(1,2)));//equivalent
+    std::cout<<"arr6.ndim="<<arr6.size().size()<<std::endl;
+    for(auto &i : arr6)
+        std::cout<<i<<" ";
+    std::cout<<std::endl;
+    std::cout<<"////////////////////"<<std::endl;
+    //using uint instead of range() will lower dimensions of slice
+    auto arr7=arr5.slice(range(),0,range());
+    std::cout<<"arr7.ndim="<<arr7.size().size()<<std::endl;
+    //auto arr6=arr5.slice(std::make_tuple(range(),range{0,2},range(1,2)));//equivalent
+    for(auto &i : arr7)
+        std::cout<<i<<" ";
+    std::cout<<std::endl;
 }
 
