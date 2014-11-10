@@ -72,7 +72,7 @@ private:
     friend void test_slice_3<>(Test&);
 
 public:
-    Test(Types... counts) : ma(counts...),count({counts...}) {
+    Test(Types... counts) : ma(counts...),count({{counts...}}) {
         size=1;
         for(auto i:count)
             size*=i;
