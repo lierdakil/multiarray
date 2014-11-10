@@ -17,6 +17,15 @@ void test() {
     std::cerr<<__PRETTY_FUNCTION__<<" test: Success!"<<std::endl;
 }
 
+template<class T, std::size_t N>
+std::ostream& operator<<(std::ostream& s, std::array<T,N> arr) {
+    s<<"(";
+    for(auto &i : arr)
+        s<<i<<",";
+    s<<")";
+    return s;
+}
+
 int main()
 {
     test<100>();
