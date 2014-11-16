@@ -156,7 +156,7 @@ public:
     }
 
     template<typename ... Types>
-    MultiArray(smallidx_t nfirst, Types... counts) :
+    explicit MultiArray(smallidx_t nfirst, Types... counts) :
         strides(new idx_t[ndim-1],std::default_delete<idx_t[]>()),
         arr_size(nfirst*fill_strides(0,counts...)),
         data(new T[arr_size],std::default_delete<T[]>()),
@@ -165,7 +165,7 @@ public:
         static_assert(ndim==sizeof...(counts)+1,"Invalid number of arguments in MultiArray constructor");
     }
 
-    MultiArray(smallidx_t nfirst) :
+    explicit MultiArray(smallidx_t nfirst) :
         strides(nullptr),
         arr_size(nfirst),
         data(new T[arr_size],std::default_delete<T[]>()),
