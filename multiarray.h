@@ -174,36 +174,18 @@ public:
         static_assert(ndim==1,"Invalid number of arguments in MultiArray constructor");
     }
 
-    MultiArray(const MultiArray &other) :
-        strides(other.strides),
-        arr_size(other.arr_size),
-        data(other.data),
-        msize(other.msize)
-    {
-    }
+    MultiArray(const MultiArray &) = default;
 
     MultiArray(MultiArray &&other) :
-        strides(other.strides),
-        arr_size(other.arr_size),
-        data(other.data),
-        msize(other.msize)
+        MultiArray(other)
     {
         other.clear();
     }
 
-    MultiArray & operator=(const MultiArray &other) {
-        strides=other.strides;
-        arr_size=other.arr_size;
-        data=other.data;
-        msize=other.msize;
-        return *this;
-    }
+    MultiArray & operator=(const MultiArray &) = default;
 
     MultiArray & operator=(MultiArray &&other) {
-        strides=other.strides;
-        arr_size=other.arr_size;
-        data=other.data;
-        msize=other.msize;
+        *this = other;
         other.clear();
         return *this;
     }
