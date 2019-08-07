@@ -70,7 +70,7 @@ int main()
     //range() means use whole dimension
     //range{i,j,...} means only use i,j,...
     //range(i,j) means use indexes from i to j (inclusive)
-    auto arr6=arr5.slice(range(),range{0,2},range(1,2));
+    const auto arr6=arr5.slice(range(),range{0,2},range(1,2));
     //auto arr6=arr5.slice(std::make_tuple(range(),range{0,2},range(1,2)));//equivalent
     std::cout<<"arr6.ndim="<<arr6.size().size()<<std::endl;
     for(auto &i : arr6)

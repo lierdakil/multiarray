@@ -333,6 +333,14 @@ public:
         return iterator(this, index(0,indices...));
     }
 
+    const_iterator begin() const {
+        return const_begin();
+    }
+
+    const_iterator end() const {
+        return const_end();
+    }
+
     const_iterator const_begin() const {
         return const_iterator(this,0);
     }
